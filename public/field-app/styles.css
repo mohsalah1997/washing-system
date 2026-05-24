@@ -1,0 +1,89 @@
+body {
+    margin: 0;
+    font-family: Tahoma, Arial, sans-serif;
+    background: #f1f5f9;
+    color: #0f172a;
+}
+
+.container {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 16px;
+}
+
+.card {
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 14px;
+    margin-bottom: 14px;
+}
+
+label {
+    display: block;
+    margin-bottom: 10px;
+}
+
+input, select, button {
+    width: 100%;
+    padding: 10px;
+    margin-top: 6px;
+    box-sizing: border-box;
+}
+
+button {
+    border: none;
+    border-radius: 8px;
+    background: #0f766e;
+    color: white;
+    font-weight: bold;
+}
+
+.actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+.status {
+    font-weight: bold;
+}
+
+pre {
+    max-height: 220px;
+    overflow: auto;
+    white-space: pre-wrap;
+    background: #f8fafc;
+    padding: 10px;
+    border-radius: 8px;
+}
+
+#readingCompareStatus.ok {
+    color: #15803d;
+    display: block;
+    margin-bottom: 8px;
+}
+
+#readingCompareStatus.warn {
+    color: #b91c1c;
+    display: block;
+    margin-bottom: 8px;
+}
+
+.pending-item {
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 10px;
+    margin-bottom: 10px;
+    background: #f8fafc;
+}
+
+.pending-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.pending-actions button {
+    width: auto;
+    flex: 1;
+}

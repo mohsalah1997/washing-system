@@ -1,0 +1,11 @@
+{
+  "name": "تطبيق الغسيل الميداني",
+  "short_name": "غسيل ميداني",
+  "start_url": "/field-app",
+  "display": "standalone",
+  "background_color": "#f1f5f9",
+  "theme_color": "#0f766e",
+  "lang": "ar",
+  "dir": "rtl",
+  "icons": []
+}
