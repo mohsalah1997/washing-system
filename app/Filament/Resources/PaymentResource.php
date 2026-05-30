@@ -159,7 +159,12 @@ class PaymentResource extends Resource
                 Tables\Columns\TextColumn::make('amount')
                     ->label('المبلغ')
                     ->money('ILS')
-                    ->sortable(),
+                    ->sortable()
+                    ->summarize(
+                        Tables\Columns\Summarizers\Sum::make()
+                            ->label('المجموع')
+                            ->money('ILS'),
+                    ),
                 Tables\Columns\TextColumn::make('method')
                     ->label('طريقة الدفع')
                     ->badge()

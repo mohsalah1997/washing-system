@@ -22,6 +22,10 @@ class SettingResource extends Resource
 
     protected static ?int $navigationSort = 3;
 
+    protected static ?string $modelLabel = 'إعداد';
+
+    protected static ?string $pluralModelLabel = 'الإعدادات';
+
     public static function shouldRegisterNavigation(): bool
     {
         return true;

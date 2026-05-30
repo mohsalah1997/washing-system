@@ -3,18 +3,15 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\CategoryResource\Pages;
-use App\Filament\Resources\CategoryResource\RelationManagers;
 use App\Models\Category;
 use Filament\Forms;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
-use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Select;
-use Filament\Forms\Components\Toggle;
 
 class CategoryResource extends Resource
 {
@@ -24,11 +21,15 @@ class CategoryResource extends Resource
 
     protected static bool $shouldRegisterNavigation = false;
 
+    protected static ?string $modelLabel = 'تصنيف';
+
+    protected static ?string $pluralModelLabel = 'التصنيفات';
+
     public static function form(Form $form): Form
     {
         return $form->schema([
             TextInput::make('name.en')
-                ->label('Name (English)')
+                ->label('الاسم (إنجليزي)')
                 ->required(),
 
             TextInput::make('name.ar')
@@ -36,20 +37,20 @@ class CategoryResource extends Resource
                 ->required(),
 
             Select::make('parent_id')
-                ->label('Parent Category')
+                ->label('التصنيف الأب')
                 ->relationship('parent', 'name')
                 ->searchable()
                 ->nullable(),
 
             TextInput::make('slug')
+                ->label('الرابط المختصر')
                 ->required()
                 ->unique(ignoreRecord: true),
 
             Toggle::make('is_active')
-                ->label('Active'),
+                ->label('نشط'),
         ]);
     }
-
 
     public static function table(Table $table): Table
     {

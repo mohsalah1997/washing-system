@@ -6,8 +6,11 @@ use App\Filament\Resources\CustomerResource\Pages;
 use App\Filament\Resources\CustomerResource\RelationManagers\MeterReadingsRelationManager;
 use App\Filament\Resources\CustomerResource\RelationManagers\PaymentsRelationManager;
 use App\Models\Customer;
+use App\Models\Setting;
 use Filament\Forms;
 use Filament\Forms\Form;
+use Filament\Forms\Get;
+use Filament\Forms\Set;
 use Filament\Infolists;
 use Filament\Infolists\Infolist;
 use Filament\Resources\Resource;
@@ -97,6 +100,67 @@ class CustomerResource extends Resource
                         Forms\Components\Hidden::make('initial_balance')
                             ->default(0),
                     ])->columns(2),
+
+                Forms\Components\Section::make('عملية الغسيل الأولى')
+                    ->description('أضف عملية الغسيل الحالية مع إنشاء الزبون.')
+                    ->schema([
+                        Forms\Components\Toggle::make('add_first_wash')
+                            ->label('إضافة غسلة')
+                            ->default(true)
+                            ->live(),
+
+                        Forms\Components\DatePicker::make('wash_reading_date')
+                            ->label('تاريخ العملية')
+                            ->default(now())
+                            ->required(fn (Get $get) => (bool) $get('add_first_wash'))
+                            ->visible(fn (Get $get) => (bool) $get('add_first_wash')),
+
+                        Forms\Components\TextInput::make('wash_reading_value')
+                            ->label('وزن الغسيل')
+                            ->numeric()
+                            ->required(fn (Get $get) => (bool) $get('add_first_wash'))
+                            ->minValue(0.001)
+                            ->suffix('كغ')
+                            ->live(onBlur: true)
+                            ->visible(fn (Get $get) => (bool) $get('add_first_wash'))
+                            ->afterStateUpdated(function (Set $set, Get $get) {
+                                MeterReadingResource::recalculateWashCost($set, $get, 'wash_');
+                            }),
+
+                        Forms\Components\TextInput::make('wash_price_per_unit')
+                            ->label('سعر الكيلو')
+                            ->numeric()
+                            ->default(fn () => (float) Setting::get('price_per_unit', 0))
+                            ->required(fn (Get $get) => (bool) $get('add_first_wash'))
+                            ->live(onBlur: true)
+                            ->helperText('يُعبّأ من الإعدادات ويمكن تعديله لهذه العملية.')
+                            ->visible(fn (Get $get) => (bool) $get('add_first_wash'))
+                            ->afterStateUpdated(function (Set $set, Get $get) {
+                                MeterReadingResource::recalculateWashCost($set, $get, 'wash_');
+                            }),
+
+                        Forms\Components\TextInput::make('wash_amount')
+                            ->label('تكلفة الغسل')
+                            ->numeric()
+                            ->disabled()
+                            ->dehydrated()
+                            ->suffix('₪')
+                            ->visible(fn (Get $get) => (bool) $get('add_first_wash')),
+
+                        Forms\Components\Hidden::make('wash_consumption')
+                            ->dehydrated(),
+
+                        Forms\Components\Hidden::make('wash_net_amount')
+                            ->dehydrated(),
+
+                        Forms\Components\Textarea::make('wash_note')
+                            ->label('ملاحظات')
+                            ->columnSpanFull()
+                            ->visible(fn (Get $get) => (bool) $get('add_first_wash')),
+                    ])
+                    ->columns(3)
+                    ->visible(fn ($livewire) => $livewire instanceof Pages\CreateCustomer
+                        && auth()->user()?->can('create_meter::reading')),
             ]);
     }
 

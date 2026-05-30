@@ -3,20 +3,16 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\ContentResource\Pages;
-use App\Filament\Resources\ContentResource\RelationManagers;
 use App\Models\Content;
-use Filament\Forms;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TagsInput;
+use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
-use Filament\Forms\Components\Textarea;
-use Filament\Forms\Components\TagsInput;
-use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Select;
-use Filament\Forms\Components\Toggle;
 
 class ContentResource extends Resource
 {
@@ -26,33 +22,40 @@ class ContentResource extends Resource
 
     protected static bool $shouldRegisterNavigation = false;
 
+    protected static ?string $modelLabel = 'محتوى';
+
+    protected static ?string $pluralModelLabel = 'المحتوى';
+
     public static function form(Form $form): Form
     {
         return $form->schema([
-            TextInput::make('title.en')->label('Title (EN)')->required(),
+            TextInput::make('title.en')->label('العنوان (إنجليزي)')->required(),
             TextInput::make('title.ar')->label('العنوان')->required(),
 
-            Textarea::make('body.en')->label('Content (EN)')->rows(6),
+            Textarea::make('body.en')->label('المحتوى (إنجليزي)')->rows(6),
             Textarea::make('body.ar')->label('المحتوى')->rows(6),
 
             TextInput::make('slug')
+                ->label('الرابط المختصر')
                 ->required()
                 ->unique(ignoreRecord: true),
 
             Select::make('category_id')
+                ->label('التصنيف')
                 ->relationship('category', 'name')
                 ->required(),
 
             Select::make('subcategory_id')
+                ->label('التصنيف الفرعي')
                 ->relationship('subcategory', 'name')
                 ->searchable()
                 ->nullable(),
 
             TagsInput::make('tags')
-                ->label('Tags'),
+                ->label('الوسوم'),
 
             Toggle::make('is_published')
-                ->label('Published'),
+                ->label('منشور'),
         ]);
     }
 

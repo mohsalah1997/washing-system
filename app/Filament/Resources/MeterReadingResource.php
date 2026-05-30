@@ -153,7 +153,7 @@ class MeterReadingResource extends Resource
                             ->suffix('كغ')
                             ->live(onBlur: true)
                             ->afterStateUpdated(function (Set $set, Get $get) {
-                                static::recalculateCost($set, $get);
+                                static::recalculateWashCost($set, $get);
                             }),
 
                         Forms\Components\TextInput::make('price_per_unit')
@@ -164,7 +164,7 @@ class MeterReadingResource extends Resource
                             ->live(onBlur: true)
                             ->helperText('يُعبّأ من الإعدادات ويمكن تعديله لهذه العملية.')
                             ->afterStateUpdated(function (Set $set, Get $get) {
-                                static::recalculateCost($set, $get);
+                                static::recalculateWashCost($set, $get);
                             }),
 
                         Forms\Components\TextInput::make('amount')
@@ -187,24 +187,24 @@ class MeterReadingResource extends Resource
             ]);
     }
 
-    protected static function recalculateCost(Set $set, Get $get): void
+    public static function recalculateWashCost(Set $set, Get $get, string $prefix = ''): void
     {
-        $weight = (float) $get('reading_value');
+        $weight = (float) $get($prefix . 'reading_value');
         if ($weight <= 0) {
             return;
         }
 
-        $pricePerUnit = (float) $get('price_per_unit');
+        $pricePerUnit = (float) $get($prefix . 'price_per_unit');
         if (! $pricePerUnit) {
             $pricePerUnit = (float) Setting::get('price_per_unit', 0);
-            $set('price_per_unit', $pricePerUnit);
+            $set($prefix . 'price_per_unit', $pricePerUnit);
         }
 
         try {
             $calculated = app(MeterReadingCalculator::class)->calculateFromWeight($weight, $pricePerUnit);
-            $set('amount', $calculated['amount']);
-            $set('consumption', $calculated['consumption']);
-            $set('net_amount', $calculated['net_amount']);
+            $set($prefix . 'amount', $calculated['amount']);
+            $set($prefix . 'consumption', $calculated['consumption']);
+            $set($prefix . 'net_amount', $calculated['net_amount']);
         } catch (\RuntimeException) {
             // weight validation handled elsewhere
         }
@@ -247,7 +247,12 @@ class MeterReadingResource extends Resource
                 Tables\Columns\TextColumn::make('amount')
                     ->label('تكلفة الغسل')
                     ->money('ILS')
-                    ->sortable(),
+                    ->sortable()
+                    ->summarize(
+                        Tables\Columns\Summarizers\Sum::make()
+                            ->label('المجموع')
+                            ->money('ILS'),
+                    ),
                 Tables\Columns\TextColumn::make('note')
                     ->label('ملاحظات')
                     ->limit(40)

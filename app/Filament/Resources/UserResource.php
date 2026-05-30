@@ -3,15 +3,12 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\UserResource\Pages;
-use App\Filament\Resources\UserResource\RelationManagers;
 use App\Models\User;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Spatie\Permission\Models\Role;
 
 class UserResource extends Resource
@@ -26,39 +23,47 @@ class UserResource extends Resource
 
     protected static ?int $navigationSort = 1;
 
+    protected static ?string $modelLabel = 'مستخدم';
+
+    protected static ?string $pluralModelLabel = 'المستخدمون';
+
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
-                Forms\Components\Section::make('User Information')
-                    ->description('Basic information about the user')
+                Forms\Components\Section::make('معلومات المستخدم')
+                    ->description('البيانات الأساسية للمستخدم')
                     ->schema([
                         Forms\Components\TextInput::make('name')
+                            ->label('الاسم')
                             ->required()
                             ->maxLength(255)
-                            ->placeholder('Enter user name'),
+                            ->placeholder('أدخل اسم المستخدم'),
                         Forms\Components\TextInput::make('email')
+                            ->label('البريد الإلكتروني')
                             ->email()
                             ->required()
                             ->maxLength(255)
                             ->unique(ignoreRecord: true)
-                            ->placeholder('Enter email address'),
+                            ->placeholder('أدخل البريد الإلكتروني'),
                         Forms\Components\TextInput::make('password')
+                            ->label('كلمة المرور')
                             ->password()
                             ->revealable()
                             ->maxLength(255)
-                            ->required(fn(string $context): bool => $context === 'create')
-                            ->placeholder('Enter password'),
+                            ->required(fn (string $context): bool => $context === 'create')
+                            ->placeholder('أدخل كلمة المرور'),
                     ])->columns(2),
 
-                Forms\Components\Section::make('Roles & Permissions')
-                    ->description('Assign roles and permissions to the user')
+                Forms\Components\Section::make('الأدوار والصلاحيات')
+                    ->description('تعيين الأدوار والصلاحيات للمستخدم')
                     ->schema([
                         Forms\Components\CheckboxList::make('roles')
+                            ->label('الأدوار')
                             ->relationship('roles', 'name')
                             ->options(Role::orderBy('name')->pluck('name', 'id'))
                             ->columns(2)
-                            ->helperText('Select one or more roles'),
+                            ->helperText('اختر دوراً واحداً أو أكثر'),
                     ]),
             ]);
     }
@@ -68,25 +73,29 @@ class UserResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('name')
+                    ->label('الاسم')
                     ->searchable()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('email')
+                    ->label('البريد الإلكتروني')
                     ->searchable()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('roles.name')
-                    ->label('Roles')
+                    ->label('الأدوار')
                     ->getStateUsing(function (User $record) {
                         return $record->getRoleNames()->implode(', ');
                     })
                     ->badge()
                     ->color('info'),
                 Tables\Columns\TextColumn::make('created_at')
+                    ->label('تاريخ الإنشاء')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('roles')
+                    ->label('الأدوار')
                     ->relationship('roles', 'name')
                     ->multiple(),
             ])
