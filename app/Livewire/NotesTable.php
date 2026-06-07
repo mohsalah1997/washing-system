@@ -3,13 +3,16 @@
 namespace App\Livewire;
 
 use App\Models\TeamNote;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
+use Filament\Forms\Form;
 use Filament\Tables;
 use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Table;
 use Illuminate\Contracts\View\View;
+use Illuminate\Database\Eloquent\Builder;
 use Livewire\Component;
 
 class NotesTable extends Component implements HasForms, HasTable
@@ -17,10 +20,40 @@ class NotesTable extends Component implements HasForms, HasTable
     use InteractsWithForms;
     use InteractsWithTable;
 
+    public string $displayPeriod = 'today';
+
+    public function form(Form $form): Form
+    {
+        return $form
+            ->schema([
+                Select::make('displayPeriod')
+                    ->label('فترة العرض')
+                    ->options([
+                        'today' => 'اليوم',
+                        'all' => 'الكل',
+                    ])
+                    ->live()
+                    ->selectablePlaceholder(false),
+            ]);
+    }
+
+    public function updatedDisplayPeriod(): void
+    {
+        $this->resetTable();
+    }
+
     public function table(Table $table): Table
     {
         return $table
-            ->query(TeamNote::query()->with('user')->latest())
+            ->query(function (): Builder {
+                $query = TeamNote::query()->with('user')->latest();
+
+                if ($this->displayPeriod !== 'all') {
+                    $query->whereDate('created_at', today());
+                }
+
+                return $query;
+            })
             ->columns([
                 Tables\Columns\TextColumn::make('title')
                     ->label('العنوان')
@@ -71,8 +104,8 @@ class NotesTable extends Component implements HasForms, HasTable
                 Tables\Actions\DeleteAction::make()
                     ->successNotificationTitle('تم حذف الملاحظة'),
             ])
-            ->emptyStateHeading('لا توجد ملاحظات')
-            ->emptyStateDescription('أضف ملاحظة عامة يطلع عليها كل الفريق.');
+            ->emptyStateHeading('لا توجد ملاحظات اليوم')
+            ->emptyStateDescription('لا توجد ملاحظات أُضيفت اليوم. غيّر فترة العرض إلى «الكل» أو أضف ملاحظة جديدة.');
     }
 
     public function render(): View

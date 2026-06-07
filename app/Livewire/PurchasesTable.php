@@ -3,13 +3,16 @@
 namespace App\Livewire;
 
 use App\Models\ShopPurchase;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
+use Filament\Forms\Form;
 use Filament\Tables;
 use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Table;
 use Illuminate\Contracts\View\View;
+use Illuminate\Database\Eloquent\Builder;
 use Livewire\Component;
 
 class PurchasesTable extends Component implements HasForms, HasTable
@@ -17,10 +20,40 @@ class PurchasesTable extends Component implements HasForms, HasTable
     use InteractsWithForms;
     use InteractsWithTable;
 
+    public string $displayPeriod = 'today';
+
+    public function form(Form $form): Form
+    {
+        return $form
+            ->schema([
+                Select::make('displayPeriod')
+                    ->label('فترة العرض')
+                    ->options([
+                        'today' => 'اليوم',
+                        'all' => 'الكل',
+                    ])
+                    ->live()
+                    ->selectablePlaceholder(false),
+            ]);
+    }
+
+    public function updatedDisplayPeriod(): void
+    {
+        $this->resetTable();
+    }
+
     public function table(Table $table): Table
     {
         return $table
-            ->query(ShopPurchase::query()->with('user')->latest())
+            ->query(function (): Builder {
+                $query = ShopPurchase::query()->with('user')->latest();
+
+                if ($this->displayPeriod !== 'all') {
+                    $query->whereDate('purchase_date', today());
+                }
+
+                return $query;
+            })
             ->columns([
                 Tables\Columns\TextColumn::make('purchase_date')
                     ->label('التاريخ')
@@ -125,8 +158,8 @@ class PurchasesTable extends Component implements HasForms, HasTable
                 Tables\Actions\DeleteAction::make()
                     ->successNotificationTitle('تم حذف المشترى'),
             ])
-            ->emptyStateHeading('لا توجد مشتريات')
-            ->emptyStateDescription('أضف أول مشترى للمحل باستخدام الزر أعلاه.');
+            ->emptyStateHeading('لا توجد مشتريات اليوم')
+            ->emptyStateDescription('لا توجد مشتريات بتاريخ اليوم. غيّر فترة العرض إلى «الكل» أو أضف مشترى جديد.');
     }
 
     public function render(): View
