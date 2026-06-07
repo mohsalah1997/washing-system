@@ -29,3 +29,7 @@ Route::get('/field-app', function () {
 Route::get('/customers/readings-template/export', \App\Http\Controllers\CustomerReadingTemplateExportController::class)
     ->name('customers.readings-template.export')
     ->middleware(['web', 'auth']);
+
+Route::get('/admin/database-backup/download', \App\Http\Controllers\DatabaseBackupController::class)
+    ->name('admin.database-backup.download')
+    ->middleware(['web', 'auth']);

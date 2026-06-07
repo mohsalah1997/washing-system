@@ -43,6 +43,7 @@ class AdminPanelProvider extends PanelProvider
             ->navigationGroups([
                 'إدارة الزبائن والغسيل',
                 'الدفعات',
+                'المشتريات والملاحظات',
                 'إدارة الوصول',
                 'إعدادات النظام',
             ])
