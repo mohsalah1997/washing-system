@@ -3,6 +3,7 @@
 namespace App\Providers\Filament;
 
 use App\Filament\Pages\Dashboard;
+use App\Filament\Widgets\SmsBalanceWidget;
 use App\Filament\Widgets\WashingStatsOverview;
 use App\Filament\Widgets\MonthlyFinanceChart;
 use App\Filament\Widgets\PaymentMethodsChart;
@@ -50,6 +51,7 @@ class AdminPanelProvider extends PanelProvider
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
             ->widgets([
                 WashingStatsOverview::class,
+                SmsBalanceWidget::class,
                 MonthlyFinanceChart::class,
                 PaymentMethodsChart::class,
                 Widgets\AccountWidget::class,

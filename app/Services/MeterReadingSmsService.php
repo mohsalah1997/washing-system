@@ -8,12 +8,20 @@ use App\Models\Setting;
 use Filament\Notifications\Notification;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\HtmlString;
 
 class MeterReadingSmsService
 {
     public function __construct(
         protected SmsApprovalMessageBuilder $messageBuilder,
+        protected TweetsmsService $tweetsmsService,
+        protected SmsSegmentCounter $segmentCounter,
     ) {}
+
+    public function formatPreviewWithSegmentCost(string $message): HtmlString
+    {
+        return new HtmlString($this->segmentCounter->renderPreviewHtml($message));
+    }
 
     public function buildMessage(MeterReading $record, string $type = 'initial'): string
     {
@@ -58,32 +66,7 @@ class MeterReadingSmsService
             return '';
         }
 
-        DB::transaction(function () use ($record, $message) {
-            MeterReadingSmsLog::create([
-                'meter_reading_id' => $record->id,
-                'user_id' => Auth::id(),
-                'type' => 'ready',
-                'message' => $message,
-                'snapshot' => [
-                    'weight' => (float) $record->reading_value,
-                    'price_per_unit' => (float) $record->price_per_unit,
-                    'amount' => (float) $record->amount,
-                    'reading_date' => $record->reading_date?->format('Y-m-d'),
-                ],
-            ]);
-        });
-
-        Notification::make()
-            ->title('إشعار SMS (تجريبي)')
-            ->body("سيتم إرسال رسالة الجاهزية التالية إلى الزبون:\n{$message}")
-            ->success()
-            ->send();
-
-        if (Setting::get('sms_enabled', '0') === '1') {
-            // هنا تقدر تضيف كود إرسال SMS الحقيقي باستخدام أي مزود خدمة
-        }
-
-        return $message;
+        return $this->dispatchSms($record, $message, 'ready', updateSentAt: false);
     }
 
     public function send(MeterReading $record, string $type = 'initial'): string
@@ -110,7 +93,80 @@ class MeterReadingSmsService
             return '';
         }
 
-        DB::transaction(function () use ($record, $type, $message) {
+        return $this->dispatchSms($record, $message, $type, updateSentAt: true);
+    }
+
+    private function dispatchSms(MeterReading $record, string $message, string $type, bool $updateSentAt): string
+    {
+        if (Setting::get('sms_enabled', '0') === '1') {
+            return $this->sendViaProvider($record, $message, $type, $updateSentAt);
+        }
+
+        return $this->sendDemo($record, $message, $type, $updateSentAt);
+    }
+
+    private function sendViaProvider(MeterReading $record, string $message, string $type, bool $updateSentAt): string
+    {
+        if (! $this->tweetsmsService->isConfigured()) {
+            Notification::make()
+                ->title('فشل إرسال SMS')
+                ->body('إعدادات مزود SMS غير مكتملة. أضف مفتاح API واسم المرسل من إعدادات رسائل SMS.')
+                ->danger()
+                ->send();
+
+            return '';
+        }
+
+        $phone = $record->customer->phone ?? '';
+        if (! filled($phone)) {
+            Notification::make()
+                ->title('فشل إرسال SMS')
+                ->body('لا يوجد رقم هاتف للزبون.')
+                ->danger()
+                ->send();
+
+            return '';
+        }
+
+        $result = $this->tweetsmsService->sendSms($phone, $message);
+
+        if (! $result['success']) {
+            Notification::make()
+                ->title('فشل إرسال SMS')
+                ->body($result['desc'])
+                ->danger()
+                ->send();
+
+            return '';
+        }
+
+        $this->persistSmsLog($record, $message, $type, $updateSentAt);
+
+        Notification::make()
+            ->title('تم إرسال الرسالة بنجاح')
+            ->body($message)
+            ->success()
+            ->send();
+
+        return $message;
+    }
+
+    private function sendDemo(MeterReading $record, string $message, string $type, bool $updateSentAt): string
+    {
+        $this->persistSmsLog($record, $message, $type, $updateSentAt);
+
+        Notification::make()
+            ->title('إشعار SMS (تجريبي)')
+            ->body("سيتم إرسال الرسالة التالية إلى الزبون:\n{$message}")
+            ->success()
+            ->send();
+
+        return $message;
+    }
+
+    private function persistSmsLog(MeterReading $record, string $message, string $type, bool $updateSentAt): void
+    {
+        DB::transaction(function () use ($record, $type, $message, $updateSentAt) {
             MeterReadingSmsLog::create([
                 'meter_reading_id' => $record->id,
                 'user_id' => Auth::id(),
@@ -124,19 +180,9 @@ class MeterReadingSmsService
                 ],
             ]);
 
-            $record->forceFill(['sms_sent_at' => now()])->save();
+            if ($updateSentAt) {
+                $record->forceFill(['sms_sent_at' => now()])->save();
+            }
         });
-
-        Notification::make()
-            ->title('إشعار SMS (تجريبي)')
-            ->body("سيتم إرسال الرسالة التالية إلى الزبون:\n{$message}")
-            ->success()
-            ->send();
-
-        if (Setting::get('sms_enabled', '0') === '1') {
-            // هنا تقدر تضيف كود إرسال SMS الحقيقي باستخدام أي مزود خدمة
-        }
-
-        return $message;
     }
 }

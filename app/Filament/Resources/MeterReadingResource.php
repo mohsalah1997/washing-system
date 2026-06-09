@@ -326,10 +326,12 @@ class MeterReadingResource extends Resource
                     ->color('info')
                     ->requiresConfirmation()
                     ->modalHeading('إرسال رسالة للزبون')
-                    ->modalDescription(function (MeterReading $record): string {
-                        $message = app(MeterReadingSmsService::class)->buildMessage($record, 'initial');
+                    ->modalDescription(function (MeterReading $record) {
+                        $service = app(MeterReadingSmsService::class);
 
-                        return $message !== '' ? $message : 'لا يوجد نص رسالة.';
+                        return $service->formatPreviewWithSegmentCost(
+                            $service->buildMessage($record, 'initial')
+                        );
                     })
                     ->visible(fn (MeterReading $record) => filled($record->customer?->phone) && ! $record->hasSmsBeenSent())
                     ->action(fn (MeterReading $record) => app(MeterReadingSmsService::class)->send($record, 'initial')),
@@ -339,10 +341,12 @@ class MeterReadingResource extends Resource
                     ->color('success')
                     ->requiresConfirmation()
                     ->modalHeading('إبلاغ الزبون بجاهزية الغسيل')
-                    ->modalDescription(function (MeterReading $record): string {
-                        $message = app(MeterReadingSmsService::class)->buildReadyMessage($record);
+                    ->modalDescription(function (MeterReading $record) {
+                        $service = app(MeterReadingSmsService::class);
 
-                        return $message !== '' ? $message : 'لا يوجد نص رسالة.';
+                        return $service->formatPreviewWithSegmentCost(
+                            $service->buildReadyMessage($record)
+                        );
                     })
                     ->visible(fn (MeterReading $record) => filled($record->customer?->phone))
                     ->action(fn (MeterReading $record) => app(MeterReadingSmsService::class)->sendReady($record)),

@@ -8,6 +8,7 @@ use App\Models\MeterReadingSmsLog;
 use App\Models\Setting;
 use App\Services\MeterReadingSmsService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 class MeterReadingSmsWorkflowTest extends TestCase
@@ -141,6 +142,59 @@ class MeterReadingSmsWorkflowTest extends TestCase
 
         $this->assertStringContainsString('Test Customer', $message);
         $this->assertStringContainsString('جاهز', $message);
+    }
+
+    public function test_sms_enabled_success_logs_and_sets_sms_sent_at(): void
+    {
+        Setting::set('sms_enabled', '1');
+        Setting::set('sms_api_key', 'test-key');
+        Setting::set('sms_sender', 'sender');
+
+        Http::fake([
+            'tweetsms.ps/api.php/maan/sendsms' => Http::response([
+                'status' => 'success',
+                'code' => 999,
+                'desc' => 'message scheduled',
+            ]),
+        ]);
+
+        $reading = $this->createReading(['reading_value' => 10]);
+
+        $message = app(MeterReadingSmsService::class)->send($reading, 'initial');
+
+        $this->assertNotEmpty($message);
+        $reading->refresh();
+        $this->assertNotNull($reading->sms_sent_at);
+        $this->assertDatabaseHas('meter_reading_sms_logs', [
+            'meter_reading_id' => $reading->id,
+            'type' => 'initial',
+        ]);
+    }
+
+    public function test_sms_enabled_failure_does_not_log_or_set_sms_sent_at(): void
+    {
+        Setting::set('sms_enabled', '1');
+        Setting::set('sms_api_key', 'test-key');
+        Setting::set('sms_sender', 'sender');
+
+        Http::fake([
+            'tweetsms.ps/api.php/maan/sendsms' => Http::response([
+                'status' => 'error',
+                'code' => -110,
+                'desc' => 'wrong user name or password',
+            ]),
+        ]);
+
+        $reading = $this->createReading(['reading_value' => 10]);
+
+        $message = app(MeterReadingSmsService::class)->send($reading, 'initial');
+
+        $this->assertSame('', $message);
+        $reading->refresh();
+        $this->assertNull($reading->sms_sent_at);
+        $this->assertDatabaseMissing('meter_reading_sms_logs', [
+            'meter_reading_id' => $reading->id,
+        ]);
     }
 
     private function createReading(array $overrides = []): MeterReading

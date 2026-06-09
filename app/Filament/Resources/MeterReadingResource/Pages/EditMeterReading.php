@@ -102,7 +102,7 @@ class EditMeterReading extends EditRecord
         }
     }
 
-    private function getCorrectionSmsPreview(): string
+    private function getCorrectionSmsPreview(): \Illuminate\Support\HtmlString
     {
         try {
             $data = $this->applyCalculatedFields($this->form->getState());
@@ -112,9 +112,9 @@ class EditMeterReading extends EditRecord
                 'correction',
             );
 
-            return $message !== '' ? $message : 'لا يوجد نص رسالة.';
+            return app(MeterReadingSmsService::class)->formatPreviewWithSegmentCost($message);
         } catch (\Throwable) {
-            return 'لا يوجد نص رسالة.';
+            return app(MeterReadingSmsService::class)->formatPreviewWithSegmentCost('');
         }
     }
 }
